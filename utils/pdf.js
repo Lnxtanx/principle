@@ -106,5 +106,5 @@ export async function generatePDF({ teacherDetails, reportData, containerId }) {
         console.error('Error generating PDF:', err);
         throw new Error(`PDF generation failed: ${err.message}`);
     }
-}
 t
+}
