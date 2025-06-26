@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Class {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique @db.VarChar
+  LessonLog LessonLog[]
+  LessonPdf LessonPdf[]
+}
+
+model ClassResponse {
+  id          Int       @id @default(autoincrement())
+  schoolId    Int
+  teacherId   Int
+  classLevel  String    @db.VarChar
+  lessonName  String    @db.VarChar
+  status      String    @db.VarChar
+  reason      String?
+  imageUrl    String?
+  submittedAt DateTime? @default(now()) @db.Timestamp(6)
+  schools     schools   @relation(fields: [schoolId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_response_school")
+  teachers    teachers  @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_response_teacher")
+}
+
+model EventApplication {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  teacherId   Int
+  eventName   String   @db.VarChar
+  eventDate   DateTime @db.Timestamp(6)
+  description String?
+  status      String?  @default("Pending") @db.VarChar
+  schools     schools  @relation(fields: [schoolId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_event_school")
+  teachers    teachers @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_event_teacher")
+}
+
+model LeaveApplication {
+  id        Int       @id @default(autoincrement())
+  schoolId  Int
+  teacherId Int
+  reason    String
+  fromDate  DateTime  @db.Timestamp(6)
+  toDate    DateTime  @db.Timestamp(6)
+  status    String?   @default("Pending") @db.VarChar
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+  schools   schools   @relation(fields: [schoolId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_leave_school")
+  teachers  teachers  @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_leave_teacher")
+}
+
+model LessonLog {
+  id         Int       @id @default(autoincrement())
+  schoolId   Int
+  teacherId  Int
+  classId    Int
+  lessonName String    @db.VarChar
+  date       DateTime? @default(now()) @db.Timestamp(6)
+  remarks    String?
+  Class      Class     @relation(fields: [classId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lessonlog_class")
+  schools    schools   @relation(fields: [schoolId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lessonlog_school")
+  teachers   teachers  @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lessonlog_teacher")
+}
+
+model LessonPdf {
+  id              Int      @id @default(autoincrement())
+  classId         Int
+  lessonName      String   @db.VarChar
+  pdfUrl          String
+  schoolId        Int?
+  isForAllSchools Boolean  @default(false)
+  createdAt       DateTime @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime @default(now()) @db.Timestamp(6)
+  Class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lessonpdf_class")
+  schools         schools? @relation(fields: [schoolId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lessonpdf_school")
+
+  @@index([classId])
+  @@index([schoolId])
+}
+
+model announcement {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(255)
+  content   String
+  date      DateTime @default(now()) @db.Timestamp(6)
+  school_id Int
+  schools   schools  @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_announcement_school")
+
+  @@index([school_id], map: "idx_announcement_school_id")
+}
+
+model schools {
+  id               Int                @id @default(autoincrement())
+  name             String             @db.VarChar
+  email            String             @unique @db.VarChar
+  password         String             @db.VarChar
+  createdAt        DateTime           @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime           @db.Timestamp(6)
+  isActive         Boolean            @default(true)
+  ClassResponse    ClassResponse[]
+  EventApplication EventApplication[]
+  LeaveApplication LeaveApplication[]
+  LessonLog        LessonLog[]
+  LessonPdf        LessonPdf[]
+  announcement     announcement[]
+  teachers         teachers[]
+
+  @@index([email])
+}
+
+model teachers {
+  id               Int                @id @default(autoincrement())
+  schoolId         Int
+  teacherName      String             @db.VarChar(100)
+  dob              DateTime           @db.Timestamp(6)
+  email            String             @unique @db.VarChar(255)
+  password         String             @db.VarChar(255)
+  profileImage     String?            @db.VarChar(1000)
+  qualification    String?            @db.VarChar(100)
+  subjectAssigned  String?            @db.VarChar(100)
+  classAssigned    String?            @db.VarChar(50)
+  experienceYears  Int?
+  status           String             @default("active") @db.VarChar(20)
+  createdAt        DateTime           @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime           @db.Timestamp(6)
+  lastLogin        DateTime?          @db.Timestamp(6)
+  ClassResponse    ClassResponse[]
+  EventApplication EventApplication[]
+  LeaveApplication LeaveApplication[]
+  LessonLog        LessonLog[]
+  schools          schools            @relation(fields: [schoolId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_teacher_school")
+  timetables       timetables[]
+
+  @@index([email])
+  @@index([schoolId])
+}
+
+model timetables {
+  id          Int      @id @default(autoincrement())
+  teacherId   Int
+  periodTimes String[] @default([])
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @db.Timestamp(6)
+  isActive    Boolean  @default(true)
+  imageurl    String?
+  imageUrl    String   @default("") @db.VarChar(1000)
+  teachers    teachers @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_timetable_teacher")
+
+  @@index([teacherId])
+}
